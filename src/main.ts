@@ -17,6 +17,9 @@ const username = `User-${String(new Date().getTime()).slice(6)}`;
 const client = ZoomVideo.createClient();
 await client.init("en-US", "Global", { patchJsMedia: true });
 
+// Track active screen shares to limit rendering to 4
+const activeShareUserIds = new Set<number>();
+
 const startCall = async () => {
   // generate a token to join the session - in production this will be done by your backend
   const token = generateSignature(topic, role, sdkKey, sdkSecret);
@@ -64,16 +67,26 @@ const renderShare: typeof event_peer_share_state_change = async (event) => {
   const { action, userId } = event;
   const mediaStream = client.getMediaStream();
   if (action === "Start") {
-    const element = await mediaStream.attachShareView(userId).catch(e => console.log('error attaching share view', e));
-    if (element && element instanceof Node) {
-      shareContainer.appendChild(element);
+    // Only render if we haven't reached the limit of 4
+    if (activeShareUserIds.size < 4) {
+      activeShareUserIds.add(userId);
+      const element = await mediaStream.attachShareView(userId).catch(e => console.log('error attaching share view', e));
+      if (element && element instanceof Node) {
+        shareContainer.appendChild(element);
+      }
+    } else {
+      console.log(`Max 4 screen shares reached. Ignoring share from user ${userId}`);
     }
   } else if (action === "Stop") {
-    const element = await mediaStream.detachShareView(userId).catch(e => console.log('error detaching share view', e));
-    if (element && Array.isArray(element)) {
-      element.forEach((el: HTMLElement) => el.remove());
-    } else if (element && element instanceof Node) {
-      element.remove();
+    // Only attempt to detach if we were actually rendering this user
+    if (activeShareUserIds.has(userId)) {
+      activeShareUserIds.delete(userId);
+      const element = await mediaStream.detachShareView(userId).catch(e => console.log('error detaching share view', e));
+      if (element && Array.isArray(element)) {
+        element.forEach((el: HTMLElement) => el.remove());
+      } else if (element && element instanceof Node) {
+        element.remove();
+      }
     }
   }
 }
@@ -93,16 +106,20 @@ const leaveCall = async () => {
       element.forEach((el) => el.remove())
     else if (element) element.remove();
     if (user.sharerOn) {
-      const element = await mediaStream.detachShareView(user.userId).catch(e => console.log('error detaching share view', e));
-      if (Array.isArray(element)) {
-        element.forEach(el => el.remove());
-      } else {
-        if (element && element instanceof Node) element.remove();
+      // Only detach if we were tracking it (meaning we attached it)
+      if (activeShareUserIds.has(user.userId)) {
+        const element = await mediaStream.detachShareView(user.userId).catch(e => console.log('error detaching share view', e));
+        if (Array.isArray(element)) {
+          element.forEach(el => el.remove());
+        } else {
+          if (element && element instanceof Node) element.remove();
+        }
       }
     }
   }
   client.off("peer-video-state-change", renderVideo);
   client.off("peer-share-state-change", renderShare);
+  activeShareUserIds.clear();
   myShareEle.style.display = 'none';
   myShareCanvas.style.display = 'none';
   shareContainer.style.display = 'none';
