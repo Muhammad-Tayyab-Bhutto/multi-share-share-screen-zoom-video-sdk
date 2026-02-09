@@ -1,0 +1,64 @@
+root@e680e6a9b5d0:/app# bash /tests/run-tests.sh; tmux wait -S done
+===================================================================== test session starts ======================================================================
+platform linux -- Python 3.13.1, pytest-9.0.2, pluggy-1.6.0
+rootdir: /tests
+collected 4 items
+
+../tests/test_outputs.py FFFF                                                                                                                            [100%]
+
+=========================================================================== FAILURES ===========================================================================
+________________________________________________________________ test_files_exist_and_not_empty ________________________________________________________________
+
+    def test_files_exist_and_not_empty():
+        """Verify that all critical project files exist and are not empty."""
+        for filename in CRITICAL_FILES:
+            path = Path(filename)
+>           assert path.exists(), f"Critical file missing: {filename}"
+E           AssertionError: Critical file missing: package.json
+E           assert False
+E            +  where False = exists()
+E            +    where exists = PosixPath('package.json').exists
+
+/tests/test_outputs.py:22: AssertionError
+______________________________________________________________________ test_json_validity ______________________________________________________________________
+
+    def test_json_validity():
+        """Verify that JSON configuration files contain valid JSON."""
+        json_files = ["package.json", "tsconfig.json"]
+        for filename in json_files:
+>           with open(filename, "r") as f:
+                 ^^^^^^^^^^^^^^^^^^^
+E           FileNotFoundError: [Errno 2] No such file or directory: 'package.json'
+
+/tests/test_outputs.py:29: FileNotFoundError
+________________________________________________________________ test_package_json_dependencies ________________________________________________________________
+
+    def test_package_json_dependencies():
+        """Verify package.json contains the specific required dependencies."""
+>       with open("package.json", "r") as f:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'package.json'
+
+/tests/test_outputs.py:37: FileNotFoundError
+______________________________________________________________________ test_main_ts_logic ______________________________________________________________________
+
+    def test_main_ts_logic():
+        """
+        Verify src/main.ts contains the core required logic for the Zoom Video SDK integration.
+        Checks for:
+        1. SDK Client Creation
+        2. Screen Share Limit Logic (Set size check)
+        3. Multiple Share Privilege
+        """
+>       with open("src/main.ts", "r") as f:
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'src/main.ts'
+
+/tests/test_outputs.py:60: FileNotFoundError
+=================================================================== short test summary info ====================================================================
+FAILED ../tests/test_outputs.py::test_files_exist_and_not_empty - AssertionError: Critical file missing: package.json
+FAILED ../tests/test_outputs.py::test_json_validity - FileNotFoundError: [Errno 2] No such file or directory: 'package.json'
+FAILED ../tests/test_outputs.py::test_package_json_dependencies - FileNotFoundError: [Errno 2] No such file or directory: 'package.json'
+FAILED ../tests/test_outputs.py::test_main_ts_logic - FileNotFoundError: [Errno 2] No such file or directory: 'src/main.ts'
+====================================================================== 4 failed in 0.12s =======================================================================
+root@e680e6a9b5d0:/app#

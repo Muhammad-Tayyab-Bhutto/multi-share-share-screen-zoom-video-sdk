@@ -1,0 +1,62 @@
+root@c842b733c162:/app# bash /tests/run-tests.sh; tmux wait -S done
+===================================================================== test session starts ======================================================================
+platform linux -- Python 3.13.1, pytest-9.0.2, pluggy-1.6.0
+rootdir: /tests
+collected 6 items
+
+../tests/test_outputs.py .F....                                                                                                                          [100%]
+
+=========================================================================== FAILURES ===========================================================================
+__________________________________________________________________ test_json_files_are_valid ___________________________________________________________________
+
+    def test_json_files_are_valid():
+        """Verify that JSON configuration files contain valid JSON."""
+        json_files = ["package.json", "tsconfig.json"]
+        for filename in json_files:
+            with open(filename, "r") as f:
+                content = f.read()
+                assert len(content) > 0, f"JSON file is empty: {filename}"
+>               data = json.loads(content)
+                       ^^^^^^^^^^^^^^^^^^^
+
+/tests/test_outputs.py:41:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/usr/local/lib/python3.13/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.13/json/decoder.py:345: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.decoder.JSONDecoder object at 0x7cb2dadf6f90>
+s = '{\n  "compilerOptions": {\n    "target": "ES2020",\n    "useDefineForClassFields": true,\n    "module": "ESNext",\n  ...cals": true,\n    "noUnusedParamete
+rs": true,\n    "noFallthroughCasesInSwitch": true\n  },\n  "include": ["src"]\n}\n'
+idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+
+        """
+        try:
+>           obj, end = self.scan_once(s, idx)
+                       ^^^^^^^^^^^^^^^^^^^^^^
+E           json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 9 column 5 (char 187)
+
+/usr/local/lib/python3.13/json/decoder.py:361: JSONDecodeError
+============================================================================ PASSES ============================================================================
+=================================================================== short test summary info ====================================================================
+PASSED ../tests/test_outputs.py::test_files_exist_and_not_empty
+PASSED ../tests/test_outputs.py::test_markdown_file_is_valid
+PASSED ../tests/test_outputs.py::test_package_json_dependencies
+PASSED ../tests/test_outputs.py::test_main_ts_logic
+PASSED ../tests/test_outputs.py::test_index_html_structure
+FAILED ../tests/test_outputs.py::test_json_files_are_valid - json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 9 column 5 (c
+har 187)
+================================================================= 1 failed, 5 passed in 0.16s ==================================================================
+root@c842b733c162:/app#

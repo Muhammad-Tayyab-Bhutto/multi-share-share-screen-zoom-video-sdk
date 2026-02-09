@@ -1,0 +1,60 @@
+{
+    "lockfile_version": "1.0",
+    "created_at": "2026-01-08T23:54:21.247244+05:00",
+    "invocation": {
+        "command": "tb",
+        "args": [
+            "run",
+            "--agent",
+            "oracle",
+            "--model",
+            "openrouter/anthropic/claude-sonnet-4.5",
+            "--dataset-path",
+            "./",
+            "--log-level",
+            "debug",
+            "--task-id",
+            "terminal-bench-task"
+        ]
+    },
+    "harness": {
+        "package": "terminal-bench",
+        "version": "0.2.18",
+        "is_editable_installation": false
+    },
+    "agent": {
+        "name": "oracle",
+        "import_path": "terminal_bench.agents.oracle_agent:OracleAgent",
+        "model_name": "Oracle",
+        "extra_kwargs": {
+            "no_rebuild": false,
+            "model_name": "openrouter/anthropic/claude-sonnet-4.5"
+        }
+    },
+    "run_config": {
+        "log_level": "debug",
+        "livestream": false,
+        "n_concurrent_trials": 4,
+        "n_attempts": 1,
+        "no_rebuild": false,
+        "cleanup": true,
+        "global_timeout_multiplier": 1.0,
+        "global_agent_timeout_sec": null,
+        "global_test_timeout_sec": null
+    },
+    "dataset": {
+        "name": null,
+        "version": null,
+        "local_path": "C:\\PPE\\videosdk-web-screenshare",
+        "task_ids": [
+            "terminal-bench-task"
+        ],
+        "registry_url": null,
+        "local_registry_path": null
+    },
+    "local_config": {
+        "output_path": "runs",
+        "run_id": "2026-01-08__23-54-21",
+        "upload_results": false
+    }
+}

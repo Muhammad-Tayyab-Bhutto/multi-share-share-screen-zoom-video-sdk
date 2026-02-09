@@ -1,0 +1,68 @@
+root@5e31a9106c7e:/app# bash /tests/run-tests.sh; tmux wait -S done
+===================================================================== test session starts ======================================================================
+platform linux -- Python 3.13.1, pytest-9.0.2, pluggy-1.6.0
+rootdir: /tests
+collected 4 items
+
+../tests/test_outputs.py FFFF                                                                                                                            [100%]
+
+=========================================================================== FAILURES ===========================================================================
+____________________________________________________________________ test_project_structure ____________________________________________________________________
+
+    def test_project_structure():
+        """Verify that all critical project files are created."""
+        files_to_check = [
+            "package.json",
+            "tsconfig.json",
+            "vite.config.ts",
+            "tailwind.config.js",
+            "index.html",
+            "src/style.css",
+            "src/utils.ts",
+            "src/main.ts",
+            "public/coi-serviceworker.js",
+            ".env"
+        ]
+        for file in files_to_check:
+>           assert Path(file).exists(), f"{file} is missing"
+E           AssertionError: package.json is missing
+E           assert False
+E            +  where False = exists()
+E            +    where exists = PosixPath('package.json').exists
+E            +      where PosixPath('package.json') = Path('package.json')
+
+/tests/test_outputs.py:20: AssertionError
+______________________________________________________________________ test_package_json _______________________________________________________________________
+
+    def test_package_json():
+        """Check package.json for required dependencies."""
+>       with open("package.json", "r") as f:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'package.json'
+
+/tests/test_outputs.py:24: FileNotFoundError
+___________________________________________________________________ test_index_html_content ____________________________________________________________________
+
+    def test_index_html_content():
+        """Check index.html for critical elements."""
+>       with open("index.html", "r") as f:
+             ^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'index.html'
+
+/tests/test_outputs.py:38: FileNotFoundError
+______________________________________________________________________ test_main_ts_logic ______________________________________________________________________
+
+    def test_main_ts_logic():
+        """Check src/main.ts for key implementation details."""
+>       with open("src/main.ts", "r") as f:
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'src/main.ts'
+
+/tests/test_outputs.py:47: FileNotFoundError
+=================================================================== short test summary info ====================================================================
+FAILED ../tests/test_outputs.py::test_project_structure - AssertionError: package.json is missing
+FAILED ../tests/test_outputs.py::test_package_json - FileNotFoundError: [Errno 2] No such file or directory: 'package.json'
+FAILED ../tests/test_outputs.py::test_index_html_content - FileNotFoundError: [Errno 2] No such file or directory: 'index.html'
+FAILED ../tests/test_outputs.py::test_main_ts_logic - FileNotFoundError: [Errno 2] No such file or directory: 'src/main.ts'
+====================================================================== 4 failed in 0.10s =======================================================================
+root@5e31a9106c7e:/app#

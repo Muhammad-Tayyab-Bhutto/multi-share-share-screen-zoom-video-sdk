@@ -1,0 +1,40 @@
+root@cbd38f9e1466:/app# bash /tests/run-tests.sh; tmux wait -S done
+===================================================================== test session starts ======================================================================
+platform linux -- Python 3.13.1, pytest-9.0.2, pluggy-1.6.0
+rootdir: /tests
+collected 6 items
+
+../tests/test_outputs.py ......                                                                                                                          [100%]
+
+============================================================================ PASSES ============================================================================
+=================================================================== short test summary info ====================================================================
+PASSED ../tests/test_outputs.py::test_files_exist_and_not_empty
+PASSED ../tests/test_outputs.py::test_json_files_are_valid
+PASSED ../tests/test_outputs.py::test_markdown_file_is_valid
+PASSED ../tests/test_outputs.py::test_package_json_dependencies
+PASSED ../tests/test_outputs.py::test_main_ts_logic
+PASSED ../tests/test_outputs.py::test_index_html_structure
+====================================================================== 6 passed in 0.03s =======================================================================
+root@cbd38f9e1466:/app#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

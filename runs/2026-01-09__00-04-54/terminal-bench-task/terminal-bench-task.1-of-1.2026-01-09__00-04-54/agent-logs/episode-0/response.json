@@ -1,0 +1,12 @@
+{
+    "state_analysis": "The terminal is at a fresh command prompt in the /app directory. No project has been initialized yet. I need to start by creating a new Vite project with TypeScript.",
+    "explanation": "I'll initialize a new Vite project with TypeScript template, then navigate into it to begin the setup process.",
+    "commands": [
+        {
+            "keystrokes": "npm create vite@latest zoom-videosdk-app -- --template vanilla-ts\n",
+            "is_blocking": true,
+            "timeout_sec": 60
+        }
+    ],
+    "is_task_complete": false
+}

@@ -1,0 +1,29 @@
+Processing tasks in duration order (longest first):
++-----+---------------------+------------+------------+
+|   # | Task Name           | Duration   | Source     |
++=====+=====================+============+============+
+|   1 | terminal-bench-task | 3m 30s     | calculated |
++-----+---------------------+------------+------------+
+Total tasks: 1
+Starting harness run
+Run ID: 2026-01-08__23-57-13
+Running task: terminal-bench-task
+Running docker compose command: docker compose -p terminal-bench-task-1-of-1-2026-01-08__23-57-13 -f C:\PPE\videosdk-web-screenshare\terminal-bench-task\docker-compose.yaml build
+Running docker compose command: docker compose -p terminal-bench-task-1-of-1-2026-01-08__23-57-13 -f C:\PPE\videosdk-web-screenshare\terminal-bench-task\docker-compose.yaml up -d
+Starting recording.
+Sending keys: ['asciinema rec --stdin \\logs\\agent.cast', 'Enter'] min_timeout_sec: 3.0 max_timeout_sec: 180.0
+Sending keys: ['clear', 'Enter'] min_timeout_sec: 0.0 max_timeout_sec: 180.0
+Making call to openrouter/anthropic/claude-sonnet-4.5
+Error running agent for task terminal-bench-task: could not convert string to float: 'bash: \\tmp\\get-asciinema-timestamp.sh: No such file or directory\n'
+Starting recording.
+Sending keys: ['asciinema rec --stdin \\logs\\tests.cast', 'Enter'] min_timeout_sec: 3.0 max_timeout_sec: 180.0
+Sending keys: ['clear', 'Enter'] min_timeout_sec: 0.0 max_timeout_sec: 180.0
+Sending keys: ['bash ', '/tests/run-tests.sh', '; tmux wait -S done', 'Enter'] min_timeout_sec: 0.0 max_timeout_sec: 60.0
+Blocking command completed in 0.85s.
+Stopping recording.
+Sending keys: ['C-d'] min_timeout_sec: 0.1 max_timeout_sec: 180.0
+Stopping recording.
+Sending keys: ['C-d'] min_timeout_sec: 0.1 max_timeout_sec: 180.0
+Running docker compose command: docker compose -p terminal-bench-task-1-of-1-2026-01-08__23-57-13 -f C:\PPE\videosdk-web-screenshare\terminal-bench-task\docker-compose.yaml down
+Running docker compose command: docker compose -p terminal-bench-task-1-of-1-2026-01-08__23-57-13 -f C:\PPE\videosdk-web-screenshare\terminal-bench-task\docker-compose.yaml down --rmi all --volumes
+Unresolved task terminal-bench-task

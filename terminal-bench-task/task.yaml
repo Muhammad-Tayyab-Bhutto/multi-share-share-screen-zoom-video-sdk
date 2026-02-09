@@ -1,0 +1,110 @@
+---
+instruction: |-
+  Project Type: Web Application
+  Tech Stack: Vite, TypeScript, Tailwind CSS (v4), Node.js (for package management)
+  Key Libraries: @zoom/videosdk, jsrsasign, @tailwindcss/vite
+
+  Goal:
+  Create a Zoom Video SDK integration that supports video conferencing, multiple active screen shares, and cloud recording controls.
+
+  Detailed Requirements:
+
+  Project Setup:
+  - Initialize a new Vite project with TypeScript.
+  - Configure Tailwind CSS v4.
+  - Install @zoom/videosdk for video/audio/screen logic and jsrsasign for generating JWT signatures locally.
+  - Important: Include a coi-serviceworker.js file and link it in index.html to handle Cross-Origin Isolation (COOP/COEP) required by Zoom Video SDK.
+  - Create a README.md file documenting the project.
+
+  Environment Variables:
+  - Use a .env file to store VITE_SDK_KEY and VITE_SDK_SECRET.
+
+  UI Layout (index.html & style.css):
+  - Create a clean, responsive UI using Tailwind CSS.
+  - Header: Title "Zoom VideoSDK Screenshare".
+
+  Controls Area:
+  - "Join" button (initially visible).
+  - "Leave" button (hidden until joined).
+  - "Share Screen" button.
+  - Cloud Recording Controls:
+    - "Start Cloud Recording"
+    - "Pause Recording"
+    - "Stop Recording"
+    - (All hidden until joined)
+
+  Video/Screen Areas:
+  - Two containers:
+    - share-container (screen shares)
+    - video-player-container (camera feeds)
+  - Hidden <video> and <canvas> elements for local screen sharing previews
+    (id="my-screen-share-content-video").
+
+  Grid Styling:
+  - Implement CSS specifically for video-player-container to create a responsive grid.
+  - Adjust columns (1, 2, or 3) based on the number of participants or shares.
+
+  Core Logic (src/main.ts):
+
+  Initialization:
+  - Create and initialize the Zoom Video SDK client using ZoomVideo.createClient().
+
+  Authentication:
+  - Implement a generateSignature function using jsrsasign.
+  - JWT Details:
+    - Topic: "TestOne"
+    - Role: 1
+
+  Joining:
+  - On "Join" click:
+    - Generate the token.
+    - Join the session.
+    - Start audio and video.
+
+  Video Rendering:
+  - Listen for peer-video-state-change.
+    - Render remote user videos into video-player-container.
+    - Handle video removal when a user stops video.
+
+  Screen Sharing:
+  - Local Share:
+    - Implement startShare using mediaStream.startShareScreen.
+    - Prefer video element rendering, fallback to canvas.
+  - Remote Share:
+    - Listen for peer-share-state-change.
+
+  Multi-Share Limit:
+  - Track active screen shares using a Set.
+  - Limit rendered screen shares to 4.
+  - If a 5th share starts:
+    - Log the event.
+    - Do not render it in the DOM.
+
+  Cloud Recording:
+  - Use client.getRecordingClient() to:
+    - Start cloud recording.
+    - Pause/Resume recording.
+    - Stop recording.
+  - Update button states and labels dynamically
+    (e.g., toggle "Pause Recording" / "Resume Recording").
+
+  Refinements:
+  - Implement proper cleanup in leaveCall:
+    - Detach video views.
+    - Remove DOM elements.
+    - Leave the session.
+    - Clear local state.
+  - Handle browser SharedArrayBuffer requirements via the service worker.
+
+author_name: Revelo
+author_email: revelo@example.com
+passes: 0
+difficulty: medium
+category: software-engineering
+tags:
+  - typescript
+  - vite
+  - zoom-sdk
+  - web
+  - frontend
+parser_name: pytest

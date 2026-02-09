@@ -1,0 +1,40 @@
+root@b7b76e58b4b7:/app# bash /tests/run-tests.sh; tmux wait -S done
+===================================================================== test session starts ======================================================================
+platform linux -- Python 3.13.1, pytest-9.0.2, pluggy-1.6.0
+rootdir: /app
+collected 0 items
+
+==================================================================== no tests ran in 0.01s =====================================================================
+ERROR: file or directory not found: \tests/test_outputs.py
+
+root@b7b76e58b4b7:/app#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

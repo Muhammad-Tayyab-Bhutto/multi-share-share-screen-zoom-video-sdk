@@ -1,0 +1,36 @@
+{
+    "id": "69ea118a-f108-4238-a66c-ca423e82e708",
+    "results": [
+        {
+            "id": "dd63e39b-04d3-4623-9cdd-6ff4f00d2663",
+            "trial_name": "terminal-bench-task.1-of-1.2026-01-08__23-56-07",
+            "task_id": "terminal-bench-task",
+            "instruction": "Project Type: Web Application\nTech Stack: Vite, TypeScript, Tailwind CSS (v4), Node.js (for package management)\nKey Libraries: @zoom/videosdk, jsrsasign, @tailwindcss/vite\n\nGoal:\nCreate a Zoom Video SDK integration that supports video conferencing, multiple active screen shares, and cloud recording controls.\n\nDetailed Requirements:\n\nProject Setup:\n- Initialize a new Vite project with TypeScript.\n- Configure Tailwind CSS v4.\n- Install @zoom/videosdk for video/audio/screen logic and jsrsasign for generating JWT signatures locally.\n- Important: Include a coi-serviceworker.js file and link it in index.html to handle Cross-Origin Isolation (COOP/COEP) required by Zoom Video SDK.\n\nEnvironment Variables:\n- Use a .env file to store VITE_SDK_KEY and VITE_SDK_SECRET.\n\nUI Layout (index.html & style.css):\n- Create a clean, responsive UI using Tailwind CSS.\n- Header: Title \"Zoom VideoSDK Screenshare\".\n\nControls Area:\n- \"Join\" button (initially visible).\n- \"Leave\" button (hidden until joined).\n- \"Share Screen\" button.\n- Cloud Recording Controls:\n  - \"Start Cloud Recording\"\n  - \"Pause Recording\"\n  - \"Stop Recording\"\n  - (All hidden until joined)\n\nVideo/Screen Areas:\n- Two containers:\n  - share-container (screen shares)\n  - video-player-container (camera feeds)\n- Hidden <video> and <canvas> elements for local screen sharing previews\n  (id=\"my-screen-share-content-video\").\n\nGrid Styling:\n- Implement CSS specifically for video-player-container to create a responsive grid.\n- Adjust columns (1, 2, or 3) based on the number of participants or shares.\n\nCore Logic (src/main.ts):\n\nInitialization:\n- Create and initialize the Zoom Video SDK client using ZoomVideo.createClient().\n\nAuthentication:\n- Implement a generateSignature function using jsrsasign.\n- JWT Details:\n  - Topic: \"TestOne\"\n  - Role: 1\n\nJoining:\n- On \"Join\" click:\n  - Generate the token.\n  - Join the session.\n  - Start audio and video.\n\nVideo Rendering:\n- Listen for peer-video-state-change.\n- Render remote user videos into video-player-container.\n- Handle video removal when a user stops video.\n\nScreen Sharing:\n- Local Share:\n  - Implement startShare using mediaStream.startShareScreen.\n  - Prefer video element rendering, fallback to canvas.\n- Remote Share:\n  - Listen for peer-share-state-change.\n\nMulti-Share Limit:\n- Track active screen shares using a Set.\n- Limit rendered screen shares to 4.\n- If a 5th share starts:\n  - Log the event.\n  - Do not render it in the DOM.\n\nCloud Recording:\n- Use client.getRecordingClient() to:\n  - Start cloud recording.\n  - Pause/Resume recording.\n  - Stop recording.\n- Update button states and labels dynamically\n  (e.g., toggle \"Pause Recording\" / \"Resume Recording\").\n\nRefinements:\n- Implement proper cleanup in leaveCall:\n  - Detach video views.\n  - Remove DOM elements.\n  - Leave the session.\n  - Clear local state.\n- Handle browser SharedArrayBuffer requirements via the service worker.",
+            "is_resolved": true,
+            "failure_mode": "unset",
+            "parser_results": {
+                "test_project_structure": "passed",
+                "test_package_json": "passed",
+                "test_index_html_content": "passed",
+                "test_main_ts_logic": "passed"
+            },
+            "recording_path": "2026-01-08__23-56-07\\terminal-bench-task\\terminal-bench-task.1-of-1.2026-01-08__23-56-07\\sessions\\agent.cast",
+            "total_input_tokens": 0,
+            "total_output_tokens": 0,
+            "trial_started_at": "2026-01-08T18:56:07.725995+00:00",
+            "trial_ended_at": "2026-01-08T18:56:38.509404+00:00",
+            "agent_started_at": "2026-01-08T18:56:28.833159+00:00",
+            "agent_ended_at": "2026-01-08T18:56:29.237133+00:00",
+            "test_started_at": "2026-01-08T18:56:33.239170+00:00",
+            "test_ended_at": "2026-01-08T18:56:34.341258+00:00"
+        }
+    ],
+    "pass_at_k": {},
+    "n_resolved": 1,
+    "n_unresolved": 0,
+    "resolved_ids": [
+        "terminal-bench-task"
+    ],
+    "unresolved_ids": [],
+    "accuracy": 1.0
+}

@@ -1,0 +1,27 @@
+{
+    "state_analysis": "The terminal is at a clean command prompt in the /app directory. No project has been initialized yet. I need to start by creating a Vite project with TypeScript, then configure all the required dependencies and files for the Zoom Video SDK integration.",
+    "explanation": "I'll initialize a new Vite project with TypeScript template, install all required dependencies (@zoom/videosdk, jsrsasign, @tailwindcss/vite, tailwindcss), and check the initial project structure.",
+    "commands": [
+        {
+            "keystrokes": "npm create vite@latest . -- --template vanilla-ts\n",
+            "is_blocking": true,
+            "timeout_sec": 60
+        },
+        {
+            "keystrokes": "npm install\n",
+            "is_blocking": true,
+            "timeout_sec": 90
+        },
+        {
+            "keystrokes": "npm install @zoom/videosdk jsrsasign @tailwindcss/vite tailwindcss\n",
+            "is_blocking": true,
+            "timeout_sec": 90
+        },
+        {
+            "keystrokes": "ls -la\n",
+            "is_blocking": true,
+            "timeout_sec": 5
+        }
+    ],
+    "is_task_complete": false
+}

@@ -1,0 +1,40 @@
+root@5a164da8e3be:/app# bash /tests/run-tests.sh; tmux wait -S done
+/tests:
+__pycache__  run-tests.sh  test_outputs.py
+
+/tests/__pycache__:
+test_outputs.cpython-314-pytest-9.0.2.pyc
+===================================================================== test session starts ======================================================================
+platform linux -- Python 3.13.1, pytest-9.0.2, pluggy-1.6.0
+rootdir: /tests
+collected 4 items
+
+../tests/test_outputs.py ....                                                                                                                            [100%]
+
+============================================================================ PASSES ============================================================================
+=================================================================== short test summary info ====================================================================
+PASSED ../tests/test_outputs.py::test_project_structure
+PASSED ../tests/test_outputs.py::test_package_json
+PASSED ../tests/test_outputs.py::test_index_html_content
+PASSED ../tests/test_outputs.py::test_main_ts_logic
+====================================================================== 4 passed in 0.03s =======================================================================
+root@5a164da8e3be:/app#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
