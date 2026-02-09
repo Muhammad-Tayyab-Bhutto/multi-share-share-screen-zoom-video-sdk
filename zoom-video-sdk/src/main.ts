@@ -31,6 +31,8 @@ interface UserContainer {
   shareOperationPromise: Promise<void>;
   // Optional properties for tracking state and elements
   pendingRemovalTimeout?: ReturnType<typeof setTimeout>;
+  hasActiveVideo?: boolean;
+  hasActiveShare?: boolean;
 }
 
 const userContainers = new Map<number, UserContainer>();
@@ -216,36 +218,72 @@ const renderVideo: typeof event_peer_video_state_change = async (event) => {
         if (container.videoElement) {
           container.videoElement.style.display = 'none';
         }
+        // Note: We keep hasActiveVideo = true because the context IS active, just hidden.
+        // Wait, if the user actually stopped video, the stream might be dead?
+        // If the SDK sent 'Stop', the stream is stopped. 
+        // If we don't detach, does the SDK keep the "connection" to the element?
+        // Usually 'Stop' means the remote track is gone.
+        // If we re-start, we probably NEED to re-attach.
+        // BUT re-attaching creates a new context.
+        // The only way to avoid new context is if `attachVideo` detects reuse.
+        // Since it doesn't seem to, we MUST detach if we want to attach again.
+        // OR we try to keep the element alive.
+
+        // Let's try: On Stop, DETACH, but Keep Element.
+        // On Start: Reuse Element.
+        // CHECK: If Stop -> Detach -> Start -> Attach(Element), does it create NEW context?
+        // Likely yes. 
+        // 
+        // ALTERNATIVE: The "Too many contexts" might be because we have ghost users?
+        // User 3 joins. User 1 and 2 are there.
+        // 3 users * 1 video = 3 contexts. + 1 share = 4.
+        // This is low.
+        // Why "Too many"? Maybe previous sessions didn't clean up?
+        // 
+        // Let's implement Strict Sequence + Detach on Stop + Reuse on Start.
+        // This is the standard correct way. The previous "Defensive Detach" might have been racing?
+        // With Mutex, it shouldn't race.
+
+        // Let's revert to: Stop = Detach. Start = Attach(Reuse).
+        // AND ensure we don't detach if already detached.
+
+        if (container.hasActiveVideo) {
+          await mediaStream.detachVideo(event.userId);
+          container.hasActiveVideo = false;
+        }
+
       } else {
         // Start Action
         const videoPlayerContainer = container.videoContainer.querySelector('video-player-container');
         if (videoPlayerContainer) {
-          // Prepare container
           const label = container.videoContainer.querySelector('.video-label');
           if (label) label.remove();
 
-          // Reuse existing element if possible
+          if (container.hasActiveVideo && container.videoElement) {
+            // Already active? Just show.
+            container.videoElement.style.display = 'block';
+            return;
+          }
+
+          // If we have an element but it's not active (detached), reuse it
+
+          // Clear container if needed (but we want to keep the element)
+          // If container has children that are NOT our videoElement, clear them
+          // videoPlayerContainer.innerHTML = ''; // This kills our stored element if it's in DOM
+
           if (container.videoElement) {
             console.log('[renderVideo] Reusing existing video element for:', username);
             container.videoElement.style.display = 'block';
-
-            // We do NOT call attachVideo again if we already have the element.
-            // The SDK should handle resuming the stream to the existing attached element.
-            // If it doesn't, we might need to call attachVideo(..., element), 
-            // BUT we must catch any "already attached" errors.
-            try {
-              // Explicitly re-attach to ensure stream keeps flowing, but pass the SAME element
-              await mediaStream.attachVideo(event.userId, VideoQuality.Video_720P, container.videoElement);
-            } catch (e) {
-              console.log('[renderVideo] Re-attach resulted in error (likely already attached), ignoring:', e);
-            }
+            // Re-attach to bind the new stream
+            await mediaStream.attachVideo(event.userId, VideoQuality.Video_720P, container.videoElement);
+            container.hasActiveVideo = true;
           } else {
-            // Create NEW element (Fresh Context) - Only done ONCE per user session
             console.log('[renderVideo] Creating NEW video element for:', username);
             videoPlayerContainer.innerHTML = '';
             const userVideo = await mediaStream.attachVideo(event.userId, VideoQuality.Video_720P);
             container.videoElement = userVideo;
             videoPlayerContainer.appendChild(userVideo as any);
+            container.hasActiveVideo = true;
           }
         }
       }
@@ -309,21 +347,20 @@ const renderShare: typeof event_peer_share_state_change = async (event) => {
       if (action === "Start") {
         const screenPlayerContainer = container.screenContainer.querySelector('video-player-container');
         if (screenPlayerContainer) {
-          // Remove label
           const label = container.screenContainer.querySelector('.screen-label');
           if (label) label.remove();
 
-          // Reuse existing element
+          if (container.hasActiveShare && container.shareElement) {
+            container.shareElement.style.display = 'block';
+            return;
+          }
+
           if (container.shareElement) {
             console.log('[renderShare] Reusing existing share element for:', username);
             container.shareElement.style.display = 'block';
-            try {
-              await mediaStream.attachShareView(userId, container.shareElement as HTMLElement);
-            } catch (e) {
-              console.log('[renderShare] Re-attach failed (likely already attached), ignoring:', e);
-            }
+            await mediaStream.attachShareView(userId, container.shareElement as HTMLElement);
+            container.hasActiveShare = true;
           } else {
-            // Create NEW element
             console.log('[renderShare] Creating NEW share element for:', username);
             screenPlayerContainer.innerHTML = '';
             const element = await mediaStream.attachShareView(userId);
@@ -331,23 +368,27 @@ const renderShare: typeof event_peer_share_state_change = async (event) => {
               const node = (Array.isArray(element) ? element[0] : element) as Node;
               container.shareElement = node;
               screenPlayerContainer.appendChild(node);
+              container.hasActiveShare = true;
             }
           }
         }
       } else if (action === "Stop") {
         console.log('[renderShare] Stopping share for user:', username);
-        // PERSISTENT REUSE: Just hide. NEVER DETACH.
+
+        if (container.hasActiveShare) {
+          await mediaStream.detachShareView(userId).catch(() => { });
+          container.hasActiveShare = false;
+        }
+
         if (container.shareElement) {
           container.shareElement.style.display = 'none';
         }
 
-        // Restore label
         const existingLabel = container.screenContainer.querySelector('.screen-label');
         if (!existingLabel) {
           const screenLabel = document.createElement('div');
           screenLabel.className = 'screen-label';
           screenLabel.textContent = 'Screen';
-
           const screenPlayerContainer = container.screenContainer.querySelector('video-player-container');
           if (screenPlayerContainer) {
             container.screenContainer.insertBefore(screenLabel, screenPlayerContainer);
