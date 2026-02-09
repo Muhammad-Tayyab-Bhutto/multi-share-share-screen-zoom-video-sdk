@@ -152,11 +152,22 @@ const renderVideo: typeof event_peer_video_state_change = async (event) => {
   } else {
     const container = getUserContainer(event.userId, username);
     if (container) {
-      console.log('[renderVideo] Attaching video for user:', username);
-      const userVideo = await mediaStream.attachVideo(event.userId, VideoQuality.Video_720P);
       // Find the video-player-container and append to it
       const videoPlayerContainer = container.videoContainer.querySelector('video-player-container');
       if (videoPlayerContainer) {
+        // Cleanup existing video if present to prevent WebGL context leaks
+        if (videoPlayerContainer.hasChildNodes()) {
+          console.log('[renderVideo] Cleaning up existing video before attaching new one for:', username);
+          const element = await mediaStream.detachVideo(event.userId);
+          if (Array.isArray(element))
+            element.forEach((el) => el.remove())
+          else if (element) element.remove();
+          videoPlayerContainer.innerHTML = '';
+        }
+
+        console.log('[renderVideo] Attaching video for user:', username);
+        const userVideo = await mediaStream.attachVideo(event.userId, VideoQuality.Video_720P);
+
         // Remove the "Video" label
         const label = container.videoContainer.querySelector('.video-label');
         if (label) label.remove();
@@ -221,21 +232,35 @@ const renderShare: typeof event_peer_share_state_change = async (event) => {
     const container = getUserContainer(userId, username);
     if (container) {
       console.log('[renderShare] Attaching screen share for user:', username);
-      const element = await mediaStream.attachShareView(userId).catch(e => console.log('error attaching share view', e));
-      if (element && element instanceof Node) {
-        // Find the screen-player-container and append to it
-        const screenPlayerContainer = container.screenContainer.querySelector('video-player-container');
-        if (screenPlayerContainer) {
+
+      // Find the screen-player-container and append to it
+      const screenPlayerContainer = container.screenContainer.querySelector('video-player-container');
+
+      if (screenPlayerContainer) {
+        // Cleanup existing share if present to prevent WebGL context leaks
+        if (screenPlayerContainer.hasChildNodes()) {
+          console.log('[renderShare] Cleaning up existing screen share before attaching new one for:', username);
+          const element = await mediaStream.detachShareView(userId).catch(e => console.log('error detaching old share view', e));
+          if (element && Array.isArray(element)) {
+            element.forEach((el: HTMLElement) => el.remove());
+          } else if (element && element instanceof Node) {
+            element.remove();
+          }
+          screenPlayerContainer.innerHTML = '';
+        }
+
+        const element = await mediaStream.attachShareView(userId).catch(e => console.log('error attaching share view', e));
+        if (element && element instanceof Node) {
           // Remove the "Screen" label
           const label = container.screenContainer.querySelector('.screen-label');
           if (label) label.remove();
           screenPlayerContainer.appendChild(element);
           console.log('[renderShare] Screen share attached successfully');
         } else {
-          console.error('[renderShare] video-player-container not found in screen container!');
+          console.log('[renderShare] Failed to get screen share element');
         }
       } else {
-        console.log('[renderShare] Failed to get screen share element');
+        console.error('[renderShare] video-player-container not found in screen container!');
       }
     } else {
       console.log(`[renderShare] Max ${MAX_USERS} users reached. Ignoring share from user ${userId}`);
