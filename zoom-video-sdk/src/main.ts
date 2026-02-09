@@ -212,33 +212,41 @@ const renderVideo: typeof event_peer_video_state_change = async (event) => {
     try {
       if (event.action === 'Stop') {
         console.log('[renderVideo] Stopping video for user:', username);
-        // Always detach to free WebGL context
-        await mediaStream.detachVideo(event.userId);
-
-        const videoPlayerContainer = container.videoContainer.querySelector('video-player-container');
-        if (videoPlayerContainer) videoPlayerContainer.innerHTML = '';
-
-        // If user has no screen share either, possibly remove logic handled elsewhere or here
-        if (!user?.sharerOn) {
-          // We don't remove container here immediately, handled by user-removed event usually
-          // but just in case
+        // PERSISTENT REUSE: Just hide. NEVER DETACH.
+        if (container.videoElement) {
+          container.videoElement.style.display = 'none';
         }
       } else {
         // Start Action
         const videoPlayerContainer = container.videoContainer.querySelector('video-player-container');
         if (videoPlayerContainer) {
-          // DEFENSIVE DETACH: Ensure no previous context exists
-          // This prevents "Too many active WebGL contexts" if the previous Stop failed or raced
-          await mediaStream.detachVideo(event.userId).catch(() => { });
-          videoPlayerContainer.innerHTML = ''; // Clear DOM
-
-          console.log('[renderVideo] Attaching video for user:', username);
-          const userVideo = await mediaStream.attachVideo(event.userId, VideoQuality.Video_720P);
-          videoPlayerContainer.appendChild(userVideo as any);
-
-          // Remove label
+          // Prepare container
           const label = container.videoContainer.querySelector('.video-label');
           if (label) label.remove();
+
+          // Reuse existing element if possible
+          if (container.videoElement) {
+            console.log('[renderVideo] Reusing existing video element for:', username);
+            container.videoElement.style.display = 'block';
+
+            // We do NOT call attachVideo again if we already have the element.
+            // The SDK should handle resuming the stream to the existing attached element.
+            // If it doesn't, we might need to call attachVideo(..., element), 
+            // BUT we must catch any "already attached" errors.
+            try {
+              // Explicitly re-attach to ensure stream keeps flowing, but pass the SAME element
+              await mediaStream.attachVideo(event.userId, VideoQuality.Video_720P, container.videoElement);
+            } catch (e) {
+              console.log('[renderVideo] Re-attach resulted in error (likely already attached), ignoring:', e);
+            }
+          } else {
+            // Create NEW element (Fresh Context) - Only done ONCE per user session
+            console.log('[renderVideo] Creating NEW video element for:', username);
+            videoPlayerContainer.innerHTML = '';
+            const userVideo = await mediaStream.attachVideo(event.userId, VideoQuality.Video_720P);
+            container.videoElement = userVideo;
+            videoPlayerContainer.appendChild(userVideo as any);
+          }
         }
       }
     } catch (e) {
@@ -301,31 +309,37 @@ const renderShare: typeof event_peer_share_state_change = async (event) => {
       if (action === "Start") {
         const screenPlayerContainer = container.screenContainer.querySelector('video-player-container');
         if (screenPlayerContainer) {
-          // DEFENSIVE DETACH: ensure clean slate
-          await mediaStream.detachShareView(userId).catch(() => { });
-          // Also try stopShareView just in case (Canvas mode cleanup)
-          // mediaStream.stopShareView(); 
-
-          screenPlayerContainer.innerHTML = '';
-
-          console.log('[renderShare] Attaching screen share for user:', username);
-          const element = await mediaStream.attachShareView(userId);
-          // Zoom might return array or element
-          if (element) {
-            // Handle potential array return or single element
-            const node = (Array.isArray(element) ? element[0] : element) as Node;
-            screenPlayerContainer.appendChild(node);
-          }
-
+          // Remove label
           const label = container.screenContainer.querySelector('.screen-label');
           if (label) label.remove();
+
+          // Reuse existing element
+          if (container.shareElement) {
+            console.log('[renderShare] Reusing existing share element for:', username);
+            container.shareElement.style.display = 'block';
+            try {
+              await mediaStream.attachShareView(userId, container.shareElement as HTMLElement);
+            } catch (e) {
+              console.log('[renderShare] Re-attach failed (likely already attached), ignoring:', e);
+            }
+          } else {
+            // Create NEW element
+            console.log('[renderShare] Creating NEW share element for:', username);
+            screenPlayerContainer.innerHTML = '';
+            const element = await mediaStream.attachShareView(userId);
+            if (element) {
+              const node = (Array.isArray(element) ? element[0] : element) as Node;
+              container.shareElement = node;
+              screenPlayerContainer.appendChild(node);
+            }
+          }
         }
       } else if (action === "Stop") {
         console.log('[renderShare] Stopping share for user:', username);
-        await mediaStream.detachShareView(userId).catch(() => { });
-
-        const screenPlayerContainer = container.screenContainer.querySelector('video-player-container');
-        if (screenPlayerContainer) screenPlayerContainer.innerHTML = '';
+        // PERSISTENT REUSE: Just hide. NEVER DETACH.
+        if (container.shareElement) {
+          container.shareElement.style.display = 'none';
+        }
 
         // Restore label
         const existingLabel = container.screenContainer.querySelector('.screen-label');
@@ -333,7 +347,11 @@ const renderShare: typeof event_peer_share_state_change = async (event) => {
           const screenLabel = document.createElement('div');
           screenLabel.className = 'screen-label';
           screenLabel.textContent = 'Screen';
-          container.screenContainer.insertBefore(screenLabel, screenPlayerContainer);
+
+          const screenPlayerContainer = container.screenContainer.querySelector('video-player-container');
+          if (screenPlayerContainer) {
+            container.screenContainer.insertBefore(screenLabel, screenPlayerContainer);
+          }
         }
 
         if (!user?.bVideoOn) {
