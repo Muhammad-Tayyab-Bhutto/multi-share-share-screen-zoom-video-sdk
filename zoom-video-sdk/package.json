@@ -9,14 +9,14 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.1.12",
     "@types/jsrsasign": "^10.5.15",
-    "tailwindcss": "^4.1.12",
-    "typescript": "^5.9.2",
-    "vite": "^6.0.0"
+    "tailwindcss": "^4.1.12"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.1.12",
     "@zoom/videosdk": "^2.3.5",
-    "jsrsasign": "^11.1.0"
+    "jsrsasign": "^11.1.0",
+    "typescript": "^5.9.2",
+    "vite": "^6.0.0"
   }
 }
