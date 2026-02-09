@@ -28,6 +28,7 @@ interface UserContainer {
   username: string;
   isVideoAttaching?: boolean;
   isScreenAttaching?: boolean;
+  pendingRemovalTimeout?: any;
 }
 
 const userContainers = new Map<number, UserContainer>();
@@ -91,7 +92,37 @@ function createUserRow(userId: number, username: string): UserContainer {
 function getUserContainer(userId: number, username?: string): UserContainer | null {
   if (userContainers.has(userId)) {
     console.log('[getUserContainer] Found existing container for user:', userId);
-    return userContainers.get(userId)!;
+    const container = userContainers.get(userId)!;
+    // Cancel any pending removal if we are reusing this exact ID
+    if (container.pendingRemovalTimeout) {
+      console.log('[getUserContainer] Cancelling pending removal for user:', userId);
+      clearTimeout(container.pendingRemovalTimeout);
+      delete container.pendingRemovalTimeout;
+      container.rowElement.classList.remove('pending-removal');
+    }
+    return container;
+  }
+
+  // Try to find an orphaned container with the same username (reconnect scenario)
+  if (username) {
+    for (const [oldId, container] of userContainers.entries()) {
+      if (container.username === username && container.pendingRemovalTimeout) {
+        console.log(`[getUserContainer] Adopting orphaned container for ${username} (Old ID: ${oldId} -> New ID: ${userId})`);
+
+        // Cancel removal
+        clearTimeout(container.pendingRemovalTimeout);
+        delete container.pendingRemovalTimeout;
+        container.rowElement.classList.remove('pending-removal');
+
+        // Update container mapping
+        container.userId = userId;
+        container.rowElement.id = `user-row-${userId}`;
+        userContainers.delete(oldId);
+        userContainers.set(userId, container);
+
+        return container;
+      }
+    }
   }
 
   if (userContainers.size >= MAX_USERS) {
@@ -107,12 +138,22 @@ function getUserContainer(userId: number, username?: string): UserContainer | nu
   return container;
 }
 
-// Remove user container
+// Remove user container with grace period
 function removeUserContainer(userId: number) {
   const container = userContainers.get(userId);
   if (container) {
-    container.rowElement.remove();
-    userContainers.delete(userId);
+    if (container.pendingRemovalTimeout) {
+      return; // Already scheduled
+    }
+
+    console.log(`[removeUserContainer] Scheduling removal for user ${userId} in 2000ms`);
+    container.rowElement.classList.add('pending-removal');
+
+    container.pendingRemovalTimeout = setTimeout(() => {
+      console.log(`[removeUserContainer] Executing removal for user ${userId}`);
+      container.rowElement.remove();
+      userContainers.delete(userId);
+    }, 2000);
   }
 }
 
