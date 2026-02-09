@@ -13,8 +13,10 @@ export function generateSignature(sessionName: string, role: number, sdkKey: str
     version: 1,
     iat: iat,
     exp: exp,
-    cloud_recording_option: 1,
-    cloud_recording_election: 1,
+    // Individual Recording (ISO) - Enabled by Zoom Support
+    cloud_recording_option: 1, // 1 = Enable individual user recording
+    cloud_recording_election: 1, // 1 = User opts-in to individual recording
+    cloud_recording_transcript_option: 2, // 0 = none, 1 = transcript only, 2 = transcript + AI summary
   };
 
   const sHeader = JSON.stringify(oHeader);

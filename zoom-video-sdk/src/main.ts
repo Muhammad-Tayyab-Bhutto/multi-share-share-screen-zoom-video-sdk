@@ -187,6 +187,12 @@ const startCall = async () => {
   const token = generateSignature(topic, role, sdkKey, sdkSecret);
   client.on("peer-video-state-change", renderVideo);
   client.on("peer-share-state-change", renderShare);
+
+  // Add recording event listeners
+  client.on('recording-change', handleRecordingChange);
+  client.on('cloud-recording-status', handleRecordingStatus);
+  client.on('individual-recording-consent', handleIndividualRecordingConsent);
+
   await client.join(topic, token, username);
   const mediaStream = client.getMediaStream();
   await mediaStream.startAudio();
@@ -197,6 +203,19 @@ const startCall = async () => {
   }
   console.log(`share privilege: ${SharePrivilege[mediaStream.getSharePrivilege()]}`);
   await renderVideo({ action: 'Start', userId: client.getCurrentUserInfo().userId });
+
+  // Check if user is host/manager and show recording controls accordingly
+  const currentUser = client.getCurrentUserInfo();
+  const isHost = currentUser.isHost || currentUser.isManager;
+
+  if (isHost) {
+    startRecordingBtn.style.display = "block";
+  } else {
+    // Hide recording controls for non-hosts
+    startRecordingBtn.style.display = "none";
+    pauseRecordingBtn.style.display = "none";
+    stopRecordingBtn.style.display = "none";
+  }
 };
 
 const renderVideo: typeof event_peer_video_state_change = async (event) => {
@@ -470,6 +489,8 @@ const leaveCall = async () => {
 
   client.off("peer-video-state-change", renderVideo);
   client.off("peer-share-state-change", renderShare);
+  client.off('recording-change', handleRecordingChange);
+  client.off('cloud-recording-status', handleRecordingStatus);
   myShareEle.style.display = 'none';
   myShareCanvas.style.display = 'none';
   await client.leave();
@@ -479,6 +500,39 @@ const leaveCall = async () => {
 let isRecording = false;
 let isPaused = false;
 
+// Recording event handlers
+const handleRecordingChange = (payload: any) => {
+  console.log('[handleRecordingChange] Recording state changed:', payload);
+
+  // Update state based on SDK event
+  isRecording = payload.state === 'Recording' || payload.state === 'Paused';
+  isPaused = payload.state === 'Paused';
+
+  // Update UI based on actual state
+  if (isRecording) {
+    startRecordingBtn.style.display = "none";
+    pauseRecordingBtn.style.display = "block";
+    stopRecordingBtn.style.display = "block";
+    pauseRecordingBtn.innerHTML = isPaused ? "Resume Recording" : "Pause Recording";
+  } else {
+    startRecordingBtn.style.display = "block";
+    pauseRecordingBtn.style.display = "none";
+    stopRecordingBtn.style.display = "none";
+  }
+};
+
+const handleRecordingStatus = (status: any) => {
+  console.log('[handleRecordingStatus] Cloud recording status:', status);
+  // Handle additional status updates if needed
+};
+
+const handleIndividualRecordingConsent = (payload: any) => {
+  console.log('[handleIndividualRecordingConsent] Individual recording consent requested:', payload);
+  // Show consent UI for users to accept/decline individual recording
+  acceptIndividualRecordingBtn.style.display = "block";
+  declineIndividualRecordingBtn.style.display = "block";
+};
+
 // UI Logic
 const startBtn = document.querySelector("#start-btn") as HTMLButtonElement;
 const stopBtn = document.querySelector("#stop-btn") as HTMLButtonElement;
@@ -486,6 +540,8 @@ const shareBtn = document.querySelector("#share-btn") as HTMLButtonElement;
 const startRecordingBtn = document.querySelector("#start-recording-btn") as HTMLButtonElement;
 const pauseRecordingBtn = document.querySelector("#pause-recording-btn") as HTMLButtonElement;
 const stopRecordingBtn = document.querySelector("#stop-recording-btn") as HTMLButtonElement;
+const acceptIndividualRecordingBtn = document.querySelector("#accept-individual-recording-btn") as HTMLButtonElement;
+const declineIndividualRecordingBtn = document.querySelector("#decline-individual-recording-btn") as HTMLButtonElement;
 
 // Cloud Recording Functions
 const startCloudRecording = async () => {
@@ -551,6 +607,39 @@ const stopCloudRecording = async () => {
   }
 };
 
+// Individual Recording Functions
+const acceptIndividualRecording = async () => {
+  try {
+    const recordingClient = client.getRecordingClient();
+    await recordingClient.acceptIndividualRecording();
+
+    // Hide consent buttons
+    acceptIndividualRecordingBtn.style.display = "none";
+    declineIndividualRecordingBtn.style.display = "none";
+
+    console.log("Individual recording accepted");
+  } catch (error) {
+    console.error("Failed to accept individual recording:", error);
+    alert("Failed to accept individual recording.");
+  }
+};
+
+const declineIndividualRecording = async () => {
+  try {
+    const recordingClient = client.getRecordingClient();
+    await recordingClient.declineIndividualRecording();
+
+    // Hide consent buttons
+    acceptIndividualRecordingBtn.style.display = "none";
+    declineIndividualRecordingBtn.style.display = "none";
+
+    console.log("Individual recording declined");
+  } catch (error) {
+    console.error("Failed to decline individual recording:", error);
+    alert("Failed to decline individual recording.");
+  }
+};
+
 startBtn.addEventListener("click", async () => {
   if (!sdkKey || !sdkSecret) {
     alert("Please enter SDK Key and SDK Secret in the .env file");
@@ -563,7 +652,7 @@ startBtn.addEventListener("click", async () => {
   startBtn.style.display = "none";
   stopBtn.style.display = "block";
   shareBtn.style.display = "block";
-  startRecordingBtn.style.display = "block"; // Show recording button when connected
+  // Recording button visibility is now controlled by host check in startCall()
 });
 
 shareBtn.addEventListener("click", async () => {
@@ -598,4 +687,13 @@ pauseRecordingBtn.addEventListener("click", async () => {
 
 stopRecordingBtn.addEventListener("click", async () => {
   await stopCloudRecording();
+});
+
+// Individual Recording Event Listeners
+acceptIndividualRecordingBtn.addEventListener("click", async () => {
+  await acceptIndividualRecording();
+});
+
+declineIndividualRecordingBtn.addEventListener("click", async () => {
+  await declineIndividualRecording();
 });
