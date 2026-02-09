@@ -29,6 +29,8 @@ interface UserContainer {
   isVideoAttaching?: boolean;
   isScreenAttaching?: boolean;
   pendingRemovalTimeout?: any;
+  videoElement?: any; // HTMLVideoElement or Zoom's internal equivalent
+  shareElement?: any; // HTMLVideoElement or Zoom's internal equivalent
 }
 
 const userContainers = new Map<number, UserContainer>();
@@ -181,72 +183,70 @@ const renderVideo: typeof event_peer_video_state_change = async (event) => {
   const username = user?.displayName || `U${userContainers.size + 1}`;
   console.log('[renderVideo] username:', username, 'user:', user);
 
-  if (event.action === 'Stop') {
-    const element = await mediaStream.detachVideo(event.userId);
-    if (Array.isArray(element))
-      element.forEach((el) => el.remove())
-    else if (element) element.remove();
+  const container = getUserContainer(event.userId, username);
+  if (!container) {
+    console.log('[renderVideo] No container available for user:', event.userId);
+    return;
+  }
 
-    // If user has no screen share either, remove the container
-    const container = userContainers.get(event.userId);
-    if (container && !user?.sharerOn) {
-      removeUserContainer(event.userId);
-    }
-  } else {
-    const container = getUserContainer(event.userId, username);
-    if (container) {
-      // Find the video-player-container and append to it
+  try {
+    if (event.action === 'Stop') {
+      // Just detach the stream, but KEEP the element in the DOM for reuse
+      console.log('[renderVideo] Stopping video for user:', username);
+      await mediaStream.detachVideo(event.userId);
+      // Do NOT remove child nodes or clear innerHTML here
+      // The element remains in the container, ready to be re-attached
+
+      // If user has no screen share either, remove the container
+      if (container && !user?.sharerOn) {
+        removeUserContainer(event.userId);
+      }
+    } else {
+      // Start Action
       const videoPlayerContainer = container.videoContainer.querySelector('video-player-container');
       if (videoPlayerContainer) {
         // PREVENT BLINKING: Check if already attached or attaching
-        if (container.isVideoAttaching) {
-          console.log('[renderVideo] Video attach already in progress for:', username);
-          return;
-        }
-        if (videoPlayerContainer.hasChildNodes()) {
-          console.log('[renderVideo] Video already attached for:', username);
-          return;
-        }
+        if (container.isVideoAttaching) { console.log('[renderVideo] Video attach already in progress'); return; }
 
         container.isVideoAttaching = true;
         try {
-          // Cleanup existing video if present to prevent WebGL context leaks
-          if (videoPlayerContainer.hasChildNodes()) {
-            console.log('[renderVideo] Cleaning up existing video before attaching new one for:', username);
-            const element = await mediaStream.detachVideo(event.userId);
-            if (Array.isArray(element))
-              element.forEach((el) => el.remove())
-            else if (element) element.remove();
+          // Reuse existing element if possible
+          if (container.videoElement) {
+            console.log('[renderVideo] Reusing existing video element for:', username);
+            try {
+              await mediaStream.attachVideo(event.userId, VideoQuality.Video_720P, container.videoElement);
+            } catch (e: any) {
+              // If reuse fails (e.g. element became invalid), clear and retry
+              console.warn('[renderVideo] Reuse failed, retrying with new element:', e);
+              container.videoElement.remove();
+              container.videoElement = undefined;
+              const newElement = await mediaStream.attachVideo(event.userId, VideoQuality.Video_720P);
+              container.videoElement = newElement;
+              videoPlayerContainer.appendChild(newElement as any);
+            }
+          } else {
+            console.log('[renderVideo] Creating NEW video element for:', username);
+            // Clean up any random children just in case
             videoPlayerContainer.innerHTML = '';
-          }
-
-          console.log('[renderVideo] Attaching video for user:', username);
-          const userVideo = await mediaStream.attachVideo(event.userId, VideoQuality.Video_720P);
-
-          // Double check if we still want to attach (in case of race)
-          if (videoPlayerContainer.hasChildNodes()) {
-            // Cleanup just in case
-            if (Array.isArray(userVideo)) userVideo.forEach(el => el.remove());
-            else (userVideo as any).remove();
-            return;
+            const userVideo = await mediaStream.attachVideo(event.userId, VideoQuality.Video_720P);
+            container.videoElement = userVideo;
+            videoPlayerContainer.appendChild(userVideo as any);
           }
 
           // Remove the "Video" label
           const label = container.videoContainer.querySelector('.video-label');
           if (label) label.remove();
-          videoPlayerContainer.appendChild(userVideo as VideoPlayer);
+
           console.log('[renderVideo] Video attached successfully');
-        } catch (e) {
-          console.error('[renderVideo] Error attaching video:', e);
         } finally {
           container.isVideoAttaching = false;
         }
       } else {
         console.error('[renderVideo] video-player-container not found!');
       }
-    } else {
-      console.log('[renderVideo] No container available for user:', event.userId);
     }
+  } catch (e) {
+    console.error('[renderVideo] Error handling video state change:', e);
   }
 };
 
@@ -299,88 +299,68 @@ const renderShare: typeof event_peer_share_state_change = async (event) => {
   if (action === "Start") {
     const container = getUserContainer(userId, username);
     if (container) {
-      console.log('[renderShare] Attaching screen share for user:', username);
-
-      // Find the screen-player-container and append to it
       const screenPlayerContainer = container.screenContainer.querySelector('video-player-container');
 
       if (screenPlayerContainer) {
-        // PREVENT BLINKING: Check if already attached or attaching
-        if (container.isScreenAttaching) {
-          console.log('[renderShare] Screen attach already in progress for:', username);
-          return;
-        }
-        if (screenPlayerContainer.hasChildNodes()) {
-          console.log('[renderShare] Screen share already attached for:', username);
-          return;
-        }
+        if (container.isScreenAttaching) { console.log('[renderShare] Screen attach already in progress'); return; }
 
         container.isScreenAttaching = true;
         try {
-          // Cleanup existing share if present to prevent WebGL context leaks
-          if (screenPlayerContainer.hasChildNodes()) {
-            console.log('[renderShare] Cleaning up existing screen share before attaching new one for:', username);
-            const element = await mediaStream.detachShareView(userId).catch(e => console.log('error detaching old share view', e));
-            if (element && Array.isArray(element)) {
-              element.forEach((el: HTMLElement) => el.remove());
-            } else if (element && element instanceof Node) {
-              element.remove();
+          // Reuse existing element if possible
+          if (container.shareElement) {
+            console.log('[renderShare] Reusing existing share element for:', username);
+            try {
+              await mediaStream.attachShareView(userId, container.shareElement);
+            } catch (e: any) {
+              console.warn('[renderShare] Reuse failed, retrying with new element:', e);
+              container.shareElement.remove();
+              container.shareElement = undefined;
+              const element = await mediaStream.attachShareView(userId);
+              if (element && element instanceof Node) {
+                container.shareElement = element;
+                screenPlayerContainer.appendChild(element);
+              }
             }
-            screenPlayerContainer.innerHTML = '';
-          }
-
-          console.log('[renderShare] Attaching screen share for user:', username);
-          const element = await mediaStream.attachShareView(userId).catch(e => console.log('error attaching share view', e));
-
-          if (element && element instanceof Node) {
-            // Check again for race condition
-            if (screenPlayerContainer.hasChildNodes()) {
-              if (Array.isArray(element)) element.forEach((el: any) => el.remove());
-              else (element as any).remove();
-              return;
-            }
-
-            // Remove the "Screen" label
-            const label = container.screenContainer.querySelector('.screen-label');
-            if (label) label.remove();
-            screenPlayerContainer.appendChild(element);
-            console.log('[renderShare] Screen share attached successfully');
           } else {
-            console.log('[renderShare] Failed to get screen share element');
+            console.log('[renderShare] Creating NEW share element for:', username);
+            screenPlayerContainer.innerHTML = '';
+            const element = await mediaStream.attachShareView(userId);
+            if (element && element instanceof Node) {
+              container.shareElement = element;
+              screenPlayerContainer.appendChild(element);
+            }
           }
+
+          // Remove the "Screen" label
+          const label = container.screenContainer.querySelector('.screen-label');
+          if (label) label.remove();
+          console.log('[renderShare] Screen share attached successfully');
+
+        } catch (e) {
+          console.error('[renderShare] Error attaching share:', e);
         } finally {
           container.isScreenAttaching = false;
         }
-      } else {
-        console.error('[renderShare] video-player-container not found in screen container!');
       }
     } else {
       console.log(`[renderShare] Max ${MAX_USERS} users reached. Ignoring share from user ${userId}`);
     }
   } else if (action === "Stop") {
-    const element = await mediaStream.detachShareView(userId).catch(e => console.log('error detaching share view', e));
-    if (element && Array.isArray(element)) {
-      element.forEach((el: HTMLElement) => el.remove());
-    } else if (element && element instanceof Node) {
-      element.remove();
-    }
+    // Just detach, keep element for reuse
+    await mediaStream.detachShareView(userId).catch(e => console.log('error detaching share view', e));
 
-    // If user has no video either, remove the container
     const container = userContainers.get(userId);
-    if (container && !user?.bVideoOn) {
+    if (container && !user?.bVideoOn && !user?.sharerOn) {
+      console.log('[renderShare] User has no active streams, scheduling removal');
       removeUserContainer(userId);
     } else if (container) {
-      // Re-add the "Screen" label and video-player-container
+      // Re-add the "Screen" label if the element is still there but detached
       const screenPlayerContainer = container.screenContainer.querySelector('video-player-container');
-      if (screenPlayerContainer) {
-        screenPlayerContainer.innerHTML = '';
-      }
-      const existingLabel = container.screenContainer.querySelector('.screen-label');
-      if (!existingLabel) {
+      if (screenPlayerContainer && !screenPlayerContainer.querySelector('.screen-label')) {
         const screenLabel = document.createElement('div');
         screenLabel.className = 'screen-label';
         screenLabel.textContent = 'Screen';
-        container.screenContainer.insertBefore(screenLabel, container.screenContainer.firstChild);
+        container.screenContainer.insertBefore(screenLabel, screenPlayerContainer);
       }
     }
   }
